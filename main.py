@@ -1,12 +1,15 @@
-import os
 from telegram.ext import *
-from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Update, ReplyKeyboardMarkup
+from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Update
 from telegram import __version__ as TG_VER
 from uuid import uuid4
 import logging
 
+import variables
 from dispatcher import _dispatcher, _reply
 
+d = variables.data_key
+CHAT_ID = variables.CHAT_ID
+TOKEN = variables.TOKEN
 
 try:
     from telegram import __version_info__
@@ -26,24 +29,21 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-# GLOBAL VARIABLES
-TOKEN = os.environ.get('BOT_TOKEN')
-
 # Stati - Differenzio le funzioni
 ISCRIZIONE, DBEDITING, UPDATE = range(3)
 
-data_key = ""
-
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    # Salvo le informazioni sull'utente
-    global data_key
+    if hasattr(update.callback_query, "data"):
+        await update.callback_query.message.delete()
 
     if len(context.chat_data) == 0:
-        data_key = str(uuid4())
+        # Salvo le informazioni sull'utente
+        global d
+        d = variables.data_key = str(uuid4())
         user = update.message.from_user
-        context.user_data[str(data_key)] = user
-        context.chat_data[data_key] = update.message.id
+        context.user_data[str(d)] = user
+        context.chat_data[d] = update.message.id
 
     keyboard = [
         [
@@ -53,31 +53,15 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
         [InlineKeyboardButton("I need an update on a group current tasks.", callback_data=str(UPDATE))],
     ]
 
-    await _reply(update, text="Hi, {}!\nMy name is Resina and I'm a digital Scambi staff member. I can do several"
-                              " things; please choose from the keyboard below. 😊".format(user.first_name),
+    await _reply(update, context, text="Hi, {}!\nMy name is Resina and I'm a digital Scambi staff member. "
+                                       "I can do several things; please choose from the keyboard below. 😊",
                  reply_markup=InlineKeyboardMarkup(keyboard))
-
-    # reply_markup = InlineKeyboardMarkup(keyboard)
-    #
-    # await update.message.reply_text("Hi, {}!\nMy name is Resina and I'm a digital Scambi staff member. I can do several"
-    #                                 " things; please choose from the keyboard below. 😊".format(user.first_name),
-    #                                 reply_markup=reply_markup)
-
-
-# async def _reply(update: Update, text: str, reply_markup: InlineKeyboardMarkup, parse_mode='MARKDOWN'):
-#     if not hasattr(update.callback_query, "inline_message_id"):
-#         await update.message.reply_text(
-#             text, reply_markup=reply_markup, parse_mode=parse_mode)
-#     else:
-#         query = update.callback_query
-#         await query.answer()
-#         await query.message.reply_text(
-#             text, reply_markup=reply_markup, parse_mode=parse_mode)
 
 
 async def user_signin_up(update: Update, context: CallbackContext):
     await update.callback_query.message.delete()
-    await _dispatcher(update, context, update.callback_query, ISCRIZIONE, data_key)
+    await _dispatcher(update, context, update.callback_query, ISCRIZIONE)
+    return
 
 
 def main():
@@ -88,27 +72,12 @@ def main():
     # Handler che lancia la funzione iniziale
     app.add_handler(CommandHandler("start", start))
 
-    # Handler che direziona verso la funzione di iscrizione e gestisce gli stati
-    # inscription_feature_handler = ConversationHandler(
-    #     entry_points=[CallbackQueryHandler(user_signin_up, pattern="^" + str(ISCRIZIONE) + "$")],
-    #     states={
-    #         # Ogni stato corrisponde ad un'informazione ricevuta in input dall'utente
-    #         # Sarà la funzione "user_signin_up" a richiedere se l'utente ha già pagato l'iscrizione
-    #         PAYMENT_REQUEST: [
-    #             CallbackQueryHandler(user_signin_up, pattern="user_payment_confirmed"),
-    #             CallbackQueryHandler(user_signin_up, pattern="user_payment_not_confirmed")
-    #         ]
-    #     },
-    #     fallbacks=[CallbackQueryHandler(start, pattern="^" + str(START_OVER) + "$")]
-    # )
-    #
-    # app.add_handler(inscription_feature_handler)
-
-    # Handlers che gestiscono la feature d'iscrizione. Ad ogni handler corrisponde uno stato.
+    # Handlers che gestiscono la feature d'iscrizione. A ogni handler corrisponde uno stato.
     # Gli stati consentono alla procedura di proseguire.
     app.add_handler(CallbackQueryHandler(user_signin_up, pattern="^" + str(ISCRIZIONE) + "$"))
     app.add_handler(CallbackQueryHandler(user_signin_up, pattern="user_payment_confirmed"))
     app.add_handler(CallbackQueryHandler(user_signin_up, pattern="user_payment_not_confirmed"))
+    app.add_handler(CallbackQueryHandler(user_signin_up, pattern="admin_payment_confirmed"))
     app.add_handler(CallbackQueryHandler(start, pattern="start_over"))
     app.run_polling()
 
