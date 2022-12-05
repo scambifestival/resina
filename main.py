@@ -7,8 +7,6 @@ import logging
 import variables
 from dispatcher import _dispatcher, _reply
 
-d = variables.data_key
-CHAT_ID = variables.CHAT_ID
 TOKEN = variables.TOKEN
 
 try:
@@ -22,7 +20,6 @@ if __version_info__ < (20, 0, 0, "alpha", 1):
         f"{TG_VER} version of this example, "
         f"visit https://docs.python-telegram-bot.org/en/v{TG_VER}/examples.html"
     )
-
 
 logging.basicConfig(
     format="%(asctime)s - %(name)s - %(levelname)s - %(message)s", level=logging.INFO
@@ -57,15 +54,17 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
                                        "I can do several things; please choose from the keyboard below. 😊",
                  reply_markup=InlineKeyboardMarkup(keyboard))
 
+    if hasattr(update.callback_query, "data") and update.callback_query.data == "start_over":
+        return ConversationHandler.END
+
 
 async def user_signin_up(update: Update, context: CallbackContext):
-    await update.callback_query.message.delete()
     await _dispatcher(update, context, update.callback_query, ISCRIZIONE)
-    return
+    return ISCRIZIONE
 
 
 def main():
-    app = Application.builder().token(TOKEN).build()
+    app = Application.builder().token(variables.TOKEN).build()
 
     # Definizione degli handler
 
@@ -78,7 +77,24 @@ def main():
     app.add_handler(CallbackQueryHandler(user_signin_up, pattern="user_payment_confirmed"))
     app.add_handler(CallbackQueryHandler(user_signin_up, pattern="user_payment_not_confirmed"))
     app.add_handler(CallbackQueryHandler(user_signin_up, pattern="admin_payment_confirmed"))
+    app.add_handler(CallbackQueryHandler(user_signin_up, pattern="admin_payment_not_confirmed"))
+    app.add_handler(CallbackQueryHandler(user_signin_up, pattern="payment_not_confirmed"))
     app.add_handler(CallbackQueryHandler(start, pattern="start_over"))
+
+    # inscription_handler = ConversationHandler(
+    #     entry_points=[CallbackQueryHandler(user_signin_up, pattern="^" + str(ISCRIZIONE) + "$")],
+    #     states={
+    #         ISCRIZIONE: [
+    #             CallbackQueryHandler(user_signin_up, pattern="user_payment_confirmed"),
+    #             CallbackQueryHandler(user_signin_up, pattern="user_payment_not_confirmed"),
+    #             CallbackQueryHandler(user_signin_up, pattern="admin_payment_confirmed"),
+    #             CallbackQueryHandler(user_signin_up, pattern="admin_payment_not_confirmed"),
+    #             CallbackQueryHandler(user_signin_up, pattern="payment_not_confirmed")
+    #         ]
+    #     },
+    #     fallbacks=[CallbackQueryHandler(start, pattern="start_over")]
+    # )
+    # app.add_handler(inscription_handler)
     app.run_polling()
 
 
