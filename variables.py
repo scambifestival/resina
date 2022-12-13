@@ -27,7 +27,7 @@ ids = MessagesIds
 # Bot token
 TOKEN = os.environ.get('BOT_TOKEN')
 # Executive chat ID
-CHAT_ID = os.environ.get("CHANNEL_ID")
+CHAT_ID = os.environ.get('EXECUTIVE_CHAT_ID')
 # dictionary kay to stored data
 data_key = ""
 

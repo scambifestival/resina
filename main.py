@@ -3,12 +3,15 @@ from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Update
 from telegram import __version__ as TG_VER
 from uuid import uuid4
 import logging
+import db_functions
 
 import variables
-from dispatcher import _dispatcher, _reply
+from utils import _reply
+from dispatcher import dispatcher
 
 TOKEN = variables.TOKEN
 
+# noinspection DuplicatedCode
 try:
     from telegram import __version_info__
 except ImportError:
@@ -35,7 +38,7 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.callback_query.message.delete()
 
     if len(context.chat_data) == 0:
-        # Salvo le informazioni sull'utente
+        # Salvo le information sull'utente
         global d
         d = variables.data_key = str(uuid4())
         user = update.message.from_user
@@ -54,12 +57,15 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
                                        "I can do several things; please choose from the keyboard below. 😊",
                  reply_markup=InlineKeyboardMarkup(keyboard))
 
-    if hasattr(update.callback_query, "data") and update.callback_query.data == "start_over":
-        return ConversationHandler.END
-
 
 async def user_signin_up(update: Update, context: CallbackContext):
-    await _dispatcher(update, context, update.callback_query, ISCRIZIONE)
+    res = db_functions.user_in_db(update, context)
+    if res is not None and res.fetchall().__len__() == 0:
+        await db_functions.add_user(update, context)
+    elif update.callback_query.data != str(ISCRIZIONE):
+        await db_functions.update_subscription_user_status(update, context)
+
+    await dispatcher(update, context, ISCRIZIONE)
     return ISCRIZIONE
 
 
@@ -79,6 +85,7 @@ def main():
     app.add_handler(CallbackQueryHandler(user_signin_up, pattern="admin_payment_confirmed"))
     app.add_handler(CallbackQueryHandler(user_signin_up, pattern="admin_payment_not_confirmed"))
     app.add_handler(CallbackQueryHandler(user_signin_up, pattern="payment_not_confirmed"))
+    app.add_handler(CallbackQueryHandler(user_signin_up, pattern="payment_confirmed"))
     app.add_handler(CallbackQueryHandler(start, pattern="start_over"))
 
     # inscription_handler = ConversationHandler(
