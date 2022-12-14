@@ -11,8 +11,8 @@ Per sapere ciò su cui stiamo lavorando, vedi [_Scambi Telegram Bot_ project](ht
 _Resina_ è un bot pensato per ausiliare lo staff di [Scambi](https://scambi.org) nell'organizzazione interna nonché favorirne la comunicazione e facilitarne l'uso di alcuni strumenti istitutivi attraverso alcune funzionalità, tra le quali:
 
 1. l'automatizzazione dell'iscrizione dei nuovi membri alla nostra associazione, tramite:
->- creazione degli account sulle nostre piattaforme;
->- giunta dell'utente al nostro libro soci;
+>- la creazione degli account sulle nostre piattaforme;
+>- la giunta dell'utente al nostro libro soci;
 2. la facilitazione dell'uso di _Pino_, il nostro database, da dispositivi mobili;
 3. la collezione delle idee proposte, catalogate tramite appositi hashtag;
 
