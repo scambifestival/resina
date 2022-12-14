@@ -1,12 +1,12 @@
-# Resina Bot - Introduzione
+# _Resina_ Bot - Introduzione
 
 Questa repository contiene il codice sorgente di [`r3sinabot`](https://t.me/r3sinabot 'Resina bot on Telegram').
 
 Per sapere ciò su cui stiamo lavorando, vedi [_Scambi Telegram Bot_ project](https://github.com/orgs/scambifestival/projects/4).
 
-*Nota*: Resina Bot è ancora in fase di sviluppo.
+<ins>Nota</ins>: _Resina_ Bot è ancora in fase di sviluppo.
 
-# Cos'è Resina
+# Cos'è _Resina_
 
 _Resina_ è un bot pensato per ausiliare lo staff di [Scambi](https://scambi.org) nell'organizzazione interna nonché favorirne la comunicazione e facilitarne l'uso di alcuni strumenti istitutivi attraverso alcune funzionalità, tra le quali:
 
@@ -29,7 +29,7 @@ Lo script del bot, interamente programmato in Pyhton attraverso la libreria [Pyt
 
 ## Il database
 
-Resina interagisce con un database interno basato su [SQLite](https://www.sqlite.org/) attraverso la libreria `sqlite3`.
+_Resina_ interagisce con un database interno basato su [SQLite](https://www.sqlite.org/) attraverso la libreria `sqlite3`.
 
 Esso consente di fornire protezione dallo spam e di facilitare l'uso del bot da parte di utenti che ne hanno già fatto uso.
 
