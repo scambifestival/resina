@@ -4,6 +4,7 @@ from telegram import __version__ as TG_VER
 from uuid import uuid4
 import logging
 import db_functions
+import utils
 
 import variables
 from utils import _reply
@@ -34,28 +35,28 @@ ISCRIZIONE, DBEDITING, UPDATE = range(3)
 
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    if hasattr(update.callback_query, "data"):
+    if hasattr(update.callback_query, "data") and update.callback_query.data != "full_name_not_correct":
         await update.callback_query.message.delete()
 
-    if len(context.chat_data) == 0:
+    if variables.done is False:
         # Salvo le information sull'utente
-        global d
-        d = variables.data_key = str(uuid4())
-        user = update.message.from_user
-        context.user_data[str(d)] = user
-        context.chat_data[d] = update.message.id
+        if variables.data_key == "":
+            variables.data_key = str(uuid4())
+            context.user_data[variables.data_key] = update.message.from_user
+        await utils.data_gatherer(update, context)
 
-    keyboard = [
-        [
-            InlineKeyboardButton("Sign me up!", callback_data=str(ISCRIZIONE)),
-            InlineKeyboardButton("I need to edit Pino.", callback_data=str(DBEDITING)),
-        ],
-        [InlineKeyboardButton("I need an update on a group current tasks.", callback_data=str(UPDATE))],
-    ]
+    if variables.done is True:
+        keyboard = [
+            [
+                InlineKeyboardButton("Sign me up!", callback_data=str(ISCRIZIONE)),
+                InlineKeyboardButton("I need to edit Pino.", callback_data=str(DBEDITING)),
+            ],
+            [InlineKeyboardButton("I need an update on a group current tasks.", callback_data=str(UPDATE))],
+        ]
 
-    await _reply(update, context, text="Hi, {}!\nMy name is Resina and I'm a digital Scambi staff member. "
-                                       "I can do several things; please choose from the keyboard below. 😊",
-                 reply_markup=InlineKeyboardMarkup(keyboard))
+        await _reply(update, context, text="Hi, {}!\nMy name is Resina and I'm a digital Scambi staff member. "
+                                           "I can do several things; please choose from the keyboard below. 😊",
+                     reply_markup=InlineKeyboardMarkup(keyboard))
 
 
 async def user_signin_up(update: Update, context: CallbackContext):
@@ -76,6 +77,11 @@ def main():
 
     # Handler che lancia la funzione iniziale
     app.add_handler(CommandHandler("start", start))
+
+    # Handlers per la raccolta delle informazioni sull'utente
+    app.add_handler(CallbackQueryHandler(start, pattern="full_name_correct"))
+    app.add_handler(CallbackQueryHandler(start, pattern="full_name_not_correct"))
+    app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, start))
 
     # Handlers che gestiscono la feature d'iscrizione. A ogni handler corrisponde uno stato.
     # Gli stati consentono alla procedura di proseguire.

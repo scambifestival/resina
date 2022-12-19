@@ -181,5 +181,5 @@ async def payment_already_checked(context: CallbackContext, status: str):
         await bot.delete_message(chat_id=user.id, message_id=variables.ids.last_user_message_id)
         await bot.send_message(user.id, text="⚠️ Your payment hasn't been confirmed in the past.\n\n"
                                              "🆘️ If you paid the subscription please ask for help to the staff"
-                                             " in order to allow me adding you the shareholders' register now.",
+                                             " in order to allow me adding you to the shareholders' register now.",
                                reply_markup=InlineKeyboardMarkup(keyboard))

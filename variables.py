@@ -30,4 +30,8 @@ TOKEN = os.environ.get('BOT_TOKEN')
 CHAT_ID = os.environ.get('EXECUTIVE_CHAT_ID')
 # dictionary kay to stored data
 data_key = ""
+# user's full name isterted manually
+fullname = ""
+# full_name gathered
+done = False
 
