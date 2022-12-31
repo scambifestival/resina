@@ -1,7 +1,7 @@
 import sqlite3
-from utils import *
 from dataclasses import dataclass
 
+from utils import *
 from utils import _reply
 
 
@@ -19,28 +19,28 @@ def connect():
 
 
 # noinspection PyUnboundLocalVariable
-def user_in_db(update: Update, context: CallbackContext):
+def user_in_db(context: CallbackContext, user: variables.UserInfos):
     conn = connect()
     c = conn.cursor
 
     try:
         res = c.execute(
             "SELECT username FROM INSCRIPTION_USERS_STATUS WHERE username = '" +
-            update.callback_query.from_user.username + "'")
+            user.username + "'")
     except sqlite3.OperationalError:
         keyboard = [
             [InlineKeyboardButton("⬅ Back to main menu", callback_data="start_over")],
             [InlineKeyboardButton("❌ Stop the bot", callback_data="stop")]
         ]
-        _reply(update, context, text="Something went wrong while doing the necessary checks with the DB.\n"
-                                     "Please contact the staff about this.",
+        _reply(user, context, text="Something went wrong while doing the necessary checks with the DB.\n"
+                                   "Please contact the staff about this.",
                reply_markup=InlineKeyboardMarkup(keyboard))
         return None
 
     return res
 
 
-async def add_user(update: Update, context: CallbackContext):
+async def add_user(context: CallbackContext, user: variables.UserInfos):
     conn = connect()
     c = conn.cursor
     keyboard = [
@@ -50,17 +50,17 @@ async def add_user(update: Update, context: CallbackContext):
     # Lo stato è necessariamente quello iniziale (str(INSCRIPTION) = 0)
     try:
         c.execute(
-            "INSERT INTO INSCRIPTION_USERS_STATUS VALUES ('" + update.callback_query.from_user.username + "', '0')"
+            "INSERT INTO INSCRIPTION_USERS_STATUS VALUES ('" + user.username + "', '0')"
         )
     except sqlite3.OperationalError:
-        await _reply(update, context, text="Something went wrong while doing the necessary checks with the DB.\n"
-                                           "Please contact the staff about this.",
+        await _reply(user, context, text="Something went wrong while doing the necessary checks with the DB.\n"
+                                         "Please contact the staff about this.",
                      reply_markup=InlineKeyboardMarkup(keyboard))
     conn.session.commit()
     conn.session.close()
 
 
-async def update_subscription_user_status(update: Update, context: CallbackContext):
+async def update_subscription_user_status(new_status: str, context: CallbackContext, user: variables.UserInfos):
     conn = connect()
     keyboard = [
         [InlineKeyboardButton("⬅ Back to main menu", callback_data="start_over")],
@@ -68,19 +68,19 @@ async def update_subscription_user_status(update: Update, context: CallbackConte
     ]
     try:
         conn.cursor.execute(
-            "UPDATE INSCRIPTION_USERS_STATUS SET status = '" + update.callback_query.data +
-            "' WHERE username = '" + update.callback_query.from_user.username + "'"
+            "UPDATE INSCRIPTION_USERS_STATUS SET status = '" + new_status +
+            "' WHERE username = '" + user.username + "'"
         )
     except sqlite3.OperationalError:
-        await _reply(update, context, text="Something went wrong while doing the necessary checks with the DB.\n"
-                                           "Please contact the staff about this.",
+        await _reply(user, context, text="Something went wrong while doing the necessary checks with the DB.\n"
+                                         "Please contact the staff about this.",
                      reply_markup=InlineKeyboardMarkup(keyboard))
     conn.session.commit()
     conn.cursor.close()
 
 
 # noinspection PyUnboundLocalVariable
-async def get_subscription_status(update: Update, context: CallbackContext):
+async def get_subscription_status(context: CallbackContext, user: variables.UserInfos):
     conn = connect()
     keyboard = [
         [InlineKeyboardButton("⬅ Back to main menu", callback_data="start_over")],
@@ -90,8 +90,8 @@ async def get_subscription_status(update: Update, context: CallbackContext):
         res = conn.cursor.execute("SELECT status FROM INSCRIPTION_USERS_STATUS WHERE username = '" +
                                   user.username + "'")
     except sqlite3.OperationalError:
-        await _reply(update, context, text="Something went wrong while doing the necessary checks with the DB.\n"
-                                           "Please contact the staff about this.",
+        await _reply(user, context, text="Something went wrong while doing the necessary checks with the DB.\n"
+                                         "Please contact the staff about this.",
                      reply_markup=InlineKeyboardMarkup(keyboard))
         res = "err_OperationalError"
 

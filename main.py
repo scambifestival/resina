@@ -1,14 +1,15 @@
-from telegram.ext import *
+import logging
+
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Update
 from telegram import __version__ as TG_VER
-from uuid import uuid4
-import logging
+from telegram.ext import *
+
 import db_functions
 import utils
-
 import variables
-from utils import _reply
 from dispatcher import dispatcher
+from utils import _reply
+from variables import _set
 
 TOKEN = variables.TOKEN
 
@@ -35,39 +36,42 @@ ISCRIZIONE, DBEDITING, UPDATE = range(3)
 
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    if hasattr(update.callback_query, "data") and update.callback_query.data != "full_name_not_correct":
-        await update.callback_query.message.delete()
 
-    if variables.done is False:
+    actual_user = utils.get_user(update)
+
+    if actual_user.username not in variables.users_dict:
         # Salvo le information sull'utente
-        if variables.data_key == "":
-            variables.data_key = str(uuid4())
-            context.user_data[variables.data_key] = update.message.from_user
-        await utils.data_gatherer(update, context)
+        _set(actual_user)
+        await utils.data_gatherer(update, context, variables.users_dict[actual_user.username])
+    # (ELE) lo prendo in culo, dio bon
+    else:
+        if variables.users_dict[actual_user.username].checks.fullname_check is not True:
+            await utils.data_gatherer(update, context, variables.users_dict[actual_user.username])
+        if variables.users_dict[actual_user.username].checks.fullname_check is True:
+            keyboard = [
+                [
+                    InlineKeyboardButton("Sign me up!", callback_data=str(ISCRIZIONE)),
+                    InlineKeyboardButton("I need to edit Pino.", callback_data=str(DBEDITING)),
+                ],
+                [InlineKeyboardButton("I need an update on a group current tasks.", callback_data=str(UPDATE))],
+            ]
 
-    if variables.done is True:
-        keyboard = [
-            [
-                InlineKeyboardButton("Sign me up!", callback_data=str(ISCRIZIONE)),
-                InlineKeyboardButton("I need to edit Pino.", callback_data=str(DBEDITING)),
-            ],
-            [InlineKeyboardButton("I need an update on a group current tasks.", callback_data=str(UPDATE))],
-        ]
-
-        await _reply(update, context, text="Hi, {}!\nMy name is Resina and I'm a digital Scambi staff member. "
-                                           "I can do several things; please choose from the keyboard below. 😊",
-                     reply_markup=InlineKeyboardMarkup(keyboard))
+            await _reply(actual_user, context, text="Hi, {}!\nMy name is Resina and I'm a digital Scambi staff"
+                                                    " member. I can do several things; please choose from"
+                                                    " the keyboard below. 😊",
+                         reply_markup=InlineKeyboardMarkup(keyboard))
 
 
 async def user_signin_up(update: Update, context: CallbackContext):
-    res = db_functions.user_in_db(update, context)
+    actual_user = variables.users_dict[update.callback_query.from_user.username]
+    res = db_functions.user_in_db(context, actual_user)
     if res is not None and res.fetchall().__len__() == 0:
-        await db_functions.add_user(update, context)
+        await db_functions.add_user(context, actual_user)
     elif update.callback_query.data != str(ISCRIZIONE):
-        await db_functions.update_subscription_user_status(update, context)
+        await db_functions.update_subscription_user_status(update.callback_query.data, context, actual_user)
 
-    await dispatcher(update, context, ISCRIZIONE)
-    return ISCRIZIONE
+    await dispatcher(actual_user, update, context, ISCRIZIONE)
+    return
 
 
 def main():
