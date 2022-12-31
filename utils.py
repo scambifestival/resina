@@ -12,13 +12,15 @@ async def _reply(user: variables.UserInfos, context: CallbackContext, text: str,
 
     if "{}" in text:
         message = await bot.editMessageText(text.format(user.first_name), chat_id=user.id,
-                                            message_id=user.lm_ids.last_user_message_id, parse_mode=parse_mode,
+                                            message_id=user.last_mess.last_user_message.message_id,
+                                            parse_mode=parse_mode,
                                             reply_markup=reply_markup)
     else:
-        message = await bot.editMessageText(text, chat_id=user.id, message_id=user.lm_ids.last_user_message_id,
+        message = await bot.editMessageText(text, chat_id=user.id,
+                                            message_id=user.last_mess.last_user_message.message_id,
                                             parse_mode=parse_mode, reply_markup=reply_markup)
 
-    user.lm_ids.last_user_message_id = message.message_id
+    user.last_mess.last_user_message = message
     variables.users_dict[user.username] = user
 
 
@@ -35,7 +37,7 @@ async def data_gatherer(update: Update, context: ContextTypes.DEFAULT_TYPE, user
         elif update.callback_query.data == "full_name_not_correct":
             # noinspection PyTypeChecker
             await bot.editMessageText(text="Ok, no problem! Please tell me your correct full name.",
-                                      chat_id=user.id, message_id=user.lm_ids.last_user_message_id)
+                                      chat_id=user.id, message_id=user.last_mess.last_user_message.message_id)
 
     elif update.message.text == "/start":
         if user.last_name != "":
@@ -53,14 +55,14 @@ async def data_gatherer(update: Update, context: ContextTypes.DEFAULT_TYPE, user
                                                                   " your correct full name.\n\nIs *" + full_name +
                                                                   "* your actual full name?",
                                             parse_mode='MARKDOWN', reply_markup=reply_markup)
-            user.lm_ids.last_user_message_id = message.message_id
+            user.last_mess.last_user_message = message
         else:
             message = await bot.send_message(chat_id=user.id, text="Hi! I'm _Resina_, the Scambi digital helper.\n\n"
                                                                    "Before we can proceed, I need to know your full "
                                                                    "name."
                                                                    "\n\nCan you just write it down? 😊",
                                              parse_mode='MARKDOWN')
-            user.lm_ids.last_user_message_id = message.message_id
+            user.last_mess.last_user_message = message
     else:
         if user.id == update.message.from_user.id:
             # L'utente ha indicato il suo nome, chiedo se è corretto
@@ -75,7 +77,7 @@ async def data_gatherer(update: Update, context: ContextTypes.DEFAULT_TYPE, user
             message = await bot.sendMessage(chat_id=user.id, text="`Is \"" + user.full_name_temp + "\" your actual "
                                                                   "full name?`",
                                             parse_mode='MARKDOWN', reply_markup=reply_markup)
-            user.lm_ids.last_user_message_id = message.message_id
+            user.last_mess.last_user_message = message
 
     variables.users_dict[user.username] = user
     return

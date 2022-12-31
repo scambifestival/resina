@@ -59,7 +59,8 @@ async def admin_payment_confirmation_request(status: str, context: CallbackConte
         # Avviso l'utente che sto chiedendo conferma al direttivo
         # noinspection PyTypeChecker
         if not actual_user.checks.signin_up_note_check:
-            await bot.delete_message(chat_id=actual_user.id, message_id=actual_user.lm_ids.last_user_message_id)
+            await bot.delete_message(chat_id=actual_user.id,
+                                     message_id=actual_user.last_mess.last_user_message.message_id)
             message = await bot.send_message(actual_user.id,
                                              text="Got it! Before we can proceed, I need a"
                                                   " confirmation from the executive staff.\n\n"
@@ -69,20 +70,23 @@ async def admin_payment_confirmation_request(status: str, context: CallbackConte
                                                   "message.\n\n💡 Meanwhile you can contact someone from the "
                                                   "Scambi team to be confirmed sooner.", reply_markup=None,
                                              parse_mode='MARKDOWN')
-            actual_user.lm_ids.last_user_message_id = message.message_id
+            actual_user.last_mess.last_user_message.message_id = message.message_id
             actual_user.checks.signin_up_note_check = True
 
         # Chiedo la conferma al direttivo (se la ho già fatta elimino il messaggio e lo riscrivo)
         keyboard = [
             [
-                InlineKeyboardButton("✅ Fee verified", callback_data="admin_payment_confirmed"),
-                InlineKeyboardButton("❌ Fee not verified", callback_data="admin_payment_not_confirmed")
+                InlineKeyboardButton("✅ Fee verified", callback_data="admin_payment_confirmed" +
+                                                                     " " + actual_user.username),
+                InlineKeyboardButton("❌ Fee not verified", callback_data="admin_payment_not_confirmed"
+                                                                         + " " + actual_user.username)
             ]
         ]
         reply_markup = InlineKeyboardMarkup(keyboard)
 
-        if actual_user.lm_ids.last_group_message_id != 0:
-            await bot.editMessageText(chat_id=variables.CHAT_ID, message_id=actual_user.lm_ids.last_group_message_id,
+        if actual_user.last_mess.last_group_message.message_id != actual_user.last_mess.first_group_message.message_id:
+            await bot.editMessageText(chat_id=variables.CHAT_ID,
+                                      message_id=actual_user.last_mess.last_group_message.message_id,
                                       text="⚠️ *PAY CONFIRMATION REQUEST* ⚠️\n\n"
                                            "The following user asked to be signed up to Scambi"
                                            " staff.\n\n_Full name_: " + actual_user.full_name +
@@ -96,43 +100,48 @@ async def admin_payment_confirmation_request(status: str, context: CallbackConte
                                                                      + "\n_Username_: " + actual_user.name + "\n\n"
                                                                      "➡️ Did this user already pay the fee?",
                                              reply_markup=reply_markup, parse_mode='MARKDOWN')
-            actual_user.lm_ids.last_group_message_id = message.message_id
+            actual_user.last_mess.last_group_message = message
 
-    elif status == "admin_payment_confirmed" or status == "admin_payment_not_confirmed":
-        # Chiedo la conferma della conferma (non si sa mai)
+    # Chiedo la conferma della conferma (non si sa mai)
+    if status == "admin_payment_confirmed":
         keyboard = [
             [
-                InlineKeyboardButton("Yes.", callback_data="payment_not_confirmed"),
-                InlineKeyboardButton("No, go back.", callback_data="user_payment_confirmed")
+                InlineKeyboardButton("Yes.", callback_data="payment_confirmed" + " " + actual_user.username),
+                InlineKeyboardButton("No, go back.", callback_data="user_payment_confirmed"
+                                                                   + " " + actual_user.username)
             ]
         ]
+        await bot.editMessageText(chat_id=variables.CHAT_ID,
+                                  message_id=actual_user.last_mess.last_group_message.message_id,
+                                  text="✅️ *PAY CONFIRMATION REQUEST* ✅️\n\nYou just confirmed"
+                                       " the payment from " + actual_user.full_name + " (" + actual_user.name
+                                       + ").\n\n*Are you sure?*\nPlease note that this operation cannot be"
+                                       " cancelled.",
+                                       reply_markup=InlineKeyboardMarkup(keyboard), parse_mode='MARKDOWN')
 
-        if status == "admin_payment_confirmed":
-
-            await bot.editMessageText(chat_id=variables.CHAT_ID,
-                                      message_id=actual_user.lm_ids.last_group_message_id,
-                                      text="✅️ *PAY CONFIRMATION REQUEST* ✅️\n\nYou just confirmed"
-                                           " the payment from " + actual_user.full_name + " (" + actual_user.name
-                                           + ").\n\n*Are you sure?*\nPlease note that this operation cannot be"
-                                           " cancelled.",
-                                           reply_markup=InlineKeyboardMarkup(keyboard), parse_mode='MARKDOWN')
-
-        else:
-            await bot.editMessageText(chat_id=variables.CHAT_ID,
-                                      message_id=actual_user.lm_ids.last_group_message_id,
-                                      text="❌️ *PAY CONFIRMATION REQUEST* ❌️\n\nYou *didn't confirm*"
-                                           " the payout from " + actual_user.full_name + " (" + actual_user.name +
-                                           ").\n\n*Are you sure?*\nPlease note that this operation cannot be"
-                                           " cancelled.",
-                                           reply_markup=InlineKeyboardMarkup(keyboard), parse_mode='MARKDOWN')
+    elif status == "admin_payment_not_confirmed":
+        keyboard = [
+            [
+                InlineKeyboardButton("Yes.", callback_data="payment_not_confirmed" + " " + actual_user.username),
+                InlineKeyboardButton("No, go back.", callback_data="user_payment_confirmed"
+                                                                   + " " + actual_user.username)
+            ]
+        ]
+        await bot.editMessageText(chat_id=variables.CHAT_ID,
+                                  message_id=actual_user.last_mess.last_group_message.message_id,
+                                  text="❌️ *PAY CONFIRMATION REQUEST* ❌️\n\nYou *didn't confirm*"
+                                       " the payout from " + actual_user.full_name + " (" + actual_user.name +
+                                       ").\n\n*Are you sure?*\nPlease note that this operation cannot be"
+                                       " cancelled.",
+                                       reply_markup=InlineKeyboardMarkup(keyboard), parse_mode='MARKDOWN')
 
     variables.users_dict[actual_user.username] = actual_user
 
 
 async def payment_confirmation_answer(status: str, context: CallbackContext, actual_user: variables.UserInfos):
     bot = context.bot
-    await bot.delete_message(chat_id=actual_user.id, message_id=actual_user.lm_ids.last_user_message_id)
-    await bot.delete_message(chat_id=variables.CHAT_ID, message_id=actual_user.lm_ids.last_group_message_id)
+    await bot.delete_message(chat_id=actual_user.id, message_id=actual_user.last_mess.last_user_message.message_id)
+    await bot.delete_message(chat_id=variables.CHAT_ID, message_id=actual_user.last_mess.last_group_message.message_id)
 
     if status == "payment_confirmed":
 
@@ -143,7 +152,7 @@ async def payment_confirmation_answer(status: str, context: CallbackContext, act
 
         group_message = await bot.send_message(variables.CHAT_ID,
                                                text="✅ The subscription fee payment from " + actual_user.full_name +
-                                                    " (" + actual_user.name + " *has been confirmed*.\n The user "
+                                                    " (" + actual_user.name + ") *has been confirmed*.\nThe user "
                                                     "will be registered to Scambi staff.",
                                                parse_mode='MARKDOWN')
 
@@ -168,9 +177,9 @@ async def payment_confirmation_answer(status: str, context: CallbackContext, act
                                                parse_mode='MARKDOWN')
 
     # noinspection PyUnboundLocalVariable
-    variables.users_dict[actual_user.username].lm_ids.last_user_message_id = message.message_id
+    variables.users_dict[actual_user.username].last_mess.last_user_message = message
     # noinspection PyUnboundLocalVariable
-    variables.users_dict[actual_user.username].lm_ids.last_group_message_id = group_message.message_id
+    variables.users_dict[actual_user.username].last_mess.last_group_message = group_message
     return
 
 
@@ -183,7 +192,7 @@ async def payment_already_checked(actual_user: variables.UserInfos, context: Cal
             [InlineKeyboardButton("⬅ Back to main menu", callback_data="start_over")],
             [InlineKeyboardButton("❌ Stop the bot", callback_data="stop")]
         ]
-        await bot.editMessageText(chat_id=actual_user.id, message_id=actual_user.lm_ids.last_user_message_id,
+        await bot.editMessageText(chat_id=actual_user.id, message_id=actual_user.last_mess.last_user_message.message_id,
                                   text="⚠️ Your payment hasn't been confirmed in the past.\n\n🆘️ If "
                                        "you paid the subscription please ask for help to the staff in "
                                        "order to allow me adding you to the shareholders' register now.",

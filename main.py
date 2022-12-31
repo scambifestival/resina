@@ -41,7 +41,7 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     if actual_user.username not in variables.users_dict:
         # Salvo le information sull'utente
-        _set(actual_user)
+        _set(actual_user, update.message)
         await utils.data_gatherer(update, context, variables.users_dict[actual_user.username])
     # (ELE) lo prendo in culo, dio bon
     else:
@@ -63,12 +63,17 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 
 async def user_signin_up(update: Update, context: CallbackContext):
-    actual_user = variables.users_dict[update.callback_query.from_user.username]
+    for_who = update.callback_query.data.split()
+    if for_who.__len__() == 1:
+        actual_user = variables.users_dict[update.callback_query.from_user.username]
+    else:
+        actual_user = variables.users_dict[for_who[1]]
+
     res = db_functions.user_in_db(context, actual_user)
     if res is not None and res.fetchall().__len__() == 0:
         await db_functions.add_user(context, actual_user)
     elif update.callback_query.data != str(ISCRIZIONE):
-        await db_functions.update_subscription_user_status(update.callback_query.data, context, actual_user)
+        await db_functions.update_subscription_user_status(for_who[0], context, actual_user)
 
     await dispatcher(actual_user, update, context, ISCRIZIONE)
     return
@@ -90,12 +95,12 @@ def main():
     # Handlers che gestiscono la feature d'iscrizione. A ogni handler corrisponde uno stato.
     # Gli stati consentono alla procedura di proseguire.
     app.add_handler(CallbackQueryHandler(user_signin_up, pattern="^" + str(ISCRIZIONE) + "$"))
-    app.add_handler(CallbackQueryHandler(user_signin_up, pattern="user_payment_confirmed"))
     app.add_handler(CallbackQueryHandler(user_signin_up, pattern="user_payment_not_confirmed"))
-    app.add_handler(CallbackQueryHandler(user_signin_up, pattern="admin_payment_confirmed"))
-    app.add_handler(CallbackQueryHandler(user_signin_up, pattern="admin_payment_not_confirmed"))
-    app.add_handler(CallbackQueryHandler(user_signin_up, pattern="payment_not_confirmed"))
-    app.add_handler(CallbackQueryHandler(user_signin_up, pattern="payment_confirmed"))
+    app.add_handler(CallbackQueryHandler(user_signin_up, pattern="^user_payment_confirmed"))
+    app.add_handler(CallbackQueryHandler(user_signin_up, pattern="^admin_payment_confirmed"))
+    app.add_handler(CallbackQueryHandler(user_signin_up, pattern="^admin_payment_not_confirmed"))
+    app.add_handler(CallbackQueryHandler(user_signin_up, pattern="^payment_not_confirmed"))
+    app.add_handler(CallbackQueryHandler(user_signin_up, pattern="^payment_confirmed"))
     app.add_handler(CallbackQueryHandler(start, pattern="start_over"))
 
     # inscription_handler = ConversationHandler(

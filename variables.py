@@ -5,9 +5,11 @@ import telegram
 
 
 @dataclass
-class MessagesIds:
-    last_user_message_id: int
-    last_group_message_id: int
+class LastMessages:
+    last_user_message: telegram.Message
+    last_group_message: telegram.Message
+    first_user_message: telegram.Message
+    first_group_message: telegram.Message
 
 
 @dataclass
@@ -25,7 +27,7 @@ class UserInfos:
     name: str
     id: int
     username: str
-    lm_ids: MessagesIds
+    last_mess: LastMessages
     checks: Checks
     first_name: str = ""
     last_name: str = ""
@@ -33,33 +35,29 @@ class UserInfos:
     full_name_temp: str = ""
 
 
-# variabile contenente gli id degli ultimi messaggi inviati nelle chat
-ids = MessagesIds
 # Bot token
 TOKEN = os.environ.get('BOT_TOKEN')
 # Executive chat ID
 CHAT_ID = os.environ.get('EXECUTIVE_CHAT_ID')
-# dictionary kay to stored data
-data_key = ""
-# fullname if inserted manually
-fullname = ""
 # users dictionary - per l'uso contemporaneo
 users_dict = {}
 
 
-def _set(starting_infos: telegram.User):
+def _set(starting_infos: telegram.User, starting_message: telegram.Message):
     users_dict[starting_infos.username] = UserInfos(
         username=starting_infos.username,
         id=starting_infos.id,
         link="https://t.me/" + starting_infos.username,
         name=starting_infos.name,
-        lm_ids=MessagesIds(
-            last_user_message_id=0,
-            last_group_message_id=0
+        last_mess=LastMessages(
+            last_user_message=starting_message,
+            last_group_message=starting_message,
+            first_user_message=starting_message,
+            first_group_message=starting_message
         ),
         checks=Checks(
             fullname_check=False,
-            signin_up_note_check=False
+            signin_up_note_check=False,
         )
     )
     if starting_infos.last_name is not None:
